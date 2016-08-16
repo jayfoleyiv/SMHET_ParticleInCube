@@ -19,7 +19,7 @@ double L=2e-9/Lau;
 double time_au = 2.418884326505e-17;
 // 1 atomic unit electric field in SI (V/m)
 double field_au = 5.14220652e11;
-
+double E_attraction;
 //
 //Fourier transform arrays
 fftw_complex *dm_corr_func;
@@ -37,7 +37,7 @@ double *fdtd_time;
 double **fdtd_field;
 
 // Scale electric field by this quantity
-double E0 = sqrt(1e17*377)/field_au;
+double E0 = sqrt(1e15*377)/field_au;
 
 void Psin(double *XA, double *PSIA, int n, int numpts);
 
@@ -94,18 +94,19 @@ int main() {
         double Ei, Eg;
 
         // nx ny nz equal to three (3)
-        nmax = 8;
+        nmax = 7;
         // number of electrons
-        Nels = 340;
+        Nels = 472;
         // number of occupied orbitals
         nocc =  Nels/2;
         // number of total unoccupied orbitals
         nvirt = pow(nmax,3) - nocc;
-
+        // nuclear attraction energy
+        E_attraction = 0.;
         // Number of active occupied orbitals to excite out of
-        nact = 60;
+        nact = 70;
         // Number of external orbitals to excite into
-        next = 60;
+        next = 80;
         // Number of single excited configurations
         ncis = nact*next;
         // ground state plus single excited configurations
@@ -118,12 +119,11 @@ int main() {
         fdtd_field = MAT_DOUBLE(10000000,3);
 
         double fdtd_dt, fdtd_total_time;
-
         //  Read the electric fields from Lumerical output files!  Get the total time & the time-step in atomic units
         //  and also the total number of field snapshots (itermax)
-        itermax = ReadElectricField(0, "FIELDS/FDTD_Ex.txt", &fdtd_dt, &fdtd_total_time);
-        itermax = ReadElectricField(1, "FIELDS/FDTD_Ey.txt", &fdtd_dt, &fdtd_total_time);
-        itermax = ReadElectricField(2, "FIELDS/FDTD_Ez.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(0, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ez.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(1, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ey.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(2, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ex.txt", &fdtd_dt, &fdtd_total_time);
 
         total_time = fdtd_total_time;
         dt = fdtd_dt;
@@ -420,7 +420,7 @@ double GroundtstateEnergyCalc ( int numorbs, int *E) {
   energy_sum = 0.;
 
 	for (i=0; i<numorbs; i++) {
-	  energy_sum += E[i];
+	  energy_sum += (E[i] + E_attraction) ;
         }
 	double energy_total = 2*energy_sum*fac;
 
@@ -429,7 +429,7 @@ return energy_total;
 
 double ExcitedstateEnergyCalc ( int orbital_i, int orbital_a, double energy_total, int *E) {
         double fac = hbar*hbar*pi*pi/(2.*m*L*L);
-	double excited_energy = energy_total- fac*E[orbital_i-1] + fac*E[orbital_a-1];
+	double excited_energy = energy_total- (fac*E[orbital_i-1]+E_attraction) + (fac*E[orbital_a-1]+E_attraction);
 	return excited_energy;
 }
 
@@ -714,24 +714,26 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
 
   int II, AA, JJ, IDX, ni, li, mi;
   double *POP, *DPOP, C2, FAC;
-  int *DIDX, *DEN, *DPOP_I, DNUM;
-
+  int *DIDX, *DPOP_I, DNUM;
+  double *DEN;
   FAC = hbar*hbar*pi*pi/(2.*m*L*L);
     
 
 
 
-  POP = VEC_DOUBLE(nocc+nvirt+1);
-  DPOP = VEC_DOUBLE(nocc+nvirt+1);
-  DIDX = VEC_INT(nocc+nvirt+1);
-  DEN  = VEC_INT(nocc+nvirt+1);
-  DPOP_I = VEC_INT(nocc+nvirt+1);
+  POP = VEC_DOUBLE(nocc+next+1);
+  DPOP = VEC_DOUBLE(nocc+next+1);
+  DIDX = VEC_INT(nocc+next+1);
+  DEN  = VEC_DOUBLE(nocc+next+1);
+  DPOP_I = VEC_INT(nocc+next+1);
 
-  II=0;
-  int IIEN = E[0];
+  II=nocc-nact;
+  int IIEN = E[II];
   DIDX[0] = II;
-  DEN[0] = E[0];
-  for (i=1; i<(nocc+nvirt); i++) {
+  DEN[0] = E[II]* hbar*hbar*pi*pi/(2*m*L*L) + E_attraction;
+  
+  for (i=nocc-nact; i<=nocc+next; i++) {
+  //for (i=1; i<(nocc+nvirt); i++) {
 
     // did we find a non-degenerate orbital?
     if (E[i]>IIEN) {
@@ -741,13 +743,13 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
     }
 
     DIDX[i] = II;
-    DEN[II] = IIEN;
+    DEN[II] = IIEN*hbar*hbar*pi*pi/(2*m*L*L)+E_attraction;
     printf("  DIDX[%i] is %i\n",i,II);
   }
 
   DNUM=II;
 
-  for (i=0; i<DNUM; i++) {
+  for (i=nocc-nact; i<DNUM; i++) {
 
     printf("  DEN[%i] is %i\n",i,DEN[i]);
 
@@ -817,7 +819,7 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
 
 
     C2 = 1.;
-    for (II=0; II<nocc; II++) {
+    for (II=nocc-nact; II<nocc; II++) {
 
      DPOP_I[DIDX[II]] += C2;
 
@@ -835,11 +837,11 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
   piter=0;
 
   rdmiter=1;
-  dmfp  = fopen("DATA/DipoleMoment.txt","w");
-  orbfp = fopen("DATA/Orbital.txt","w");
-  vfp   = fopen("DATA/Dipole_Vector.txt","w");
-  popfp = fopen("DATA/Populations.txt","w");
-  poptrace = fopen("DATA/Population_Trace.txt","w");
+  dmfp  = fopen("DATA/DipoleMoment_WGMAuCube.txt","w");
+  orbfp = fopen("DATA/Orbital_WGMAuCube.txt","w");
+  vfp   = fopen("DATA/Dipole_Vector_WGMAuCube.txt","w");
+  popfp = fopen("DATA/Populations_WGMAuCube.txt","w");
+  poptrace = fopen("DATA/Population_Trace_WGMAuCube.txt","w");
 
   for (iter=0; iter<itermax; iter++) {
 
@@ -874,7 +876,7 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
 
       cn[i] = fac*q[i] + I*fac*p[i];
       ct[i] = fac*q[i] - I*fac*p[i];
-      printf("  %12.10e  %12.10e\n",creal(cn[i]),cimag(cn[i]));
+      //printf("  %12.10e  %12.10e\n",creal(cn[i]),cimag(cn[i]));
 
     }
 
@@ -890,18 +892,18 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
     for (i=0; i<ncis; i++) {
       rho+= creal(D[i*ncis+i]);
     }
-    printf("  rho is %f\n",rho);
+    printf("  rho is %16.12f\n",rho);
 
     // Get orbital population densities
     C2 = creal(D[0]);
 
     // Initialize
-    for (II=0; II<(nocc+nvirt); II++) {
+    for (II=nocc-nact; II<(nocc+next); II++) {
       POP[II] = 0.;
       DPOP[II] = 0.;
     }
     // Fill up HF reference orbitals
-    for (II=0; II<nocc; II++) {
+    for (II=nocc-nact; II<nocc; II++) {
 
       POP[II] += C2;
       DPOP[DIDX[II]] += C2;
@@ -912,7 +914,7 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
 
       C2 = creal(D[IDX*ncis+IDX]);
       // Go through all occupied orbitals in reference again
-      for (JJ=0; JJ<nocc; JJ++) {
+      for (JJ=nocc-nact; JJ<nocc; JJ++) {
 
         POP[JJ] += C2;
         DPOP[DIDX[JJ]] += C2;
@@ -928,11 +930,12 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
   }
 
   fprintf(popfp,"\n\n#%i\n",iter);
-  for (II=0; II<DNUM; II++) {
-     fprintf(popfp,"  %f  %f\n",27.211*pi*pi/(2*L*L)*DEN[II],DPOP[II]-DPOP_I[II]);
+  for (II=nocc-nact; II<DNUM; II++) {
+     fprintf(popfp,"  %f  %f\n",DEN[II],DPOP[II]-DPOP_I[II]);
   }
-  fprintf(poptrace,"\n  %12.10f ",iter*dt*time_au/1e-15);
-  for (II=0; II<DNUM; II++) {
+  //fprintf(poptrace,"\n  %12.10f ",iter*dt*time_au/1e-15);
+  fprintf(poptrace,"\n %i ",iter);
+  for (II=nocc-nact; II<DNUM; II++) {
     fprintf(poptrace," %12.10e ",DPOP[II]-DPOP_I[II]);
   }
 
