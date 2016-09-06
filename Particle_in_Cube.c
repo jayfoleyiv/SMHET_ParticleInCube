@@ -94,7 +94,7 @@ int main() {
         double Ei, Eg;
 
         // nx ny nz equal to three (3)
-        nmax = 8;
+        nmax = 7;
         // number of electrons
         Nels = 472;
         // number of occupied orbitals
