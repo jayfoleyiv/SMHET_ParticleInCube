@@ -94,9 +94,9 @@ int main() {
         double Ei, Eg;
 
         // nx ny nz equal to three (3)
-        nmax = 7;
+        nmax = 10;
         // number of electrons
-        Nels = 472;
+        Nels = 1104;
         // number of occupied orbitals
         nocc =  Nels/2;
         // number of total unoccupied orbitals
@@ -121,9 +121,9 @@ int main() {
         double fdtd_dt, fdtd_total_time;
         //  Read the electric fields from Lumerical output files!  Get the total time & the time-step in atomic units
         //  and also the total number of field snapshots (itermax)
-        itermax = ReadElectricField(0, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ez.txt", &fdtd_dt, &fdtd_total_time);
-        itermax = ReadElectricField(1, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ey.txt", &fdtd_dt, &fdtd_total_time);
-        itermax = ReadElectricField(2, "FIELDS/WGM_135nm_TiO2_2nm_Cube/WGM_135nm_TiO2_2nm_Au_Nanocube_Mon_24.1_0_133_Ex.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(0, "FIELDS/TFSF_TiO2_121.1nm_0_331_Z_2nm_Pt.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(1, "FIELDS/TFSF_TiO2_121.1nm_0_331_Y_2nm_Pt.txt", &fdtd_dt, &fdtd_total_time);
+        itermax = ReadElectricField(2, "FIELDS/TFSF_TiO2_121.1nm_0_331_X_2nm_Pt.txt", &fdtd_dt, &fdtd_total_time);
 
         total_time = fdtd_total_time;
         dt = fdtd_dt;
@@ -837,11 +837,11 @@ void Propagate(int sup, int ncis, double *H0, double *mu, int **bas, int *E, int
   piter=0;
 
   rdmiter=1;
-  dmfp  = fopen("DATA/DipoleMoment_WGMAuCube.txt","w");
-  orbfp = fopen("DATA/Orbital_WGMAuCube.txt","w");
-  vfp   = fopen("DATA/Dipole_Vector_WGMAuCube.txt","w");
-  popfp = fopen("DATA/Populations_WGMAuCube.txt","w");
-  poptrace = fopen("DATA/Population_Trace_WGMAuCube.txt","w");
+  dmfp  = fopen("DATA/DipoleMoment_121.1nm_0_331_Pt.txt","w");
+  orbfp = fopen("DATA/Orbital_121.1nm_0_331_Pt.txt","w");
+  vfp   = fopen("DATA/Dipole_Vector_121.1nm_0_331_Pt.txt","w");
+  popfp = fopen("DATA/Populations_121.1nm_0_331_Pt.txt","w");
+  poptrace = fopen("DATA/Population_Trace_121.1nm_0_331_Pt.txt","w");
 
   for (iter=0; iter<itermax; iter++) {
 

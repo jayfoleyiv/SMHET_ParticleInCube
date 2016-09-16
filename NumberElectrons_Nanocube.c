@@ -22,7 +22,7 @@ double L = 2e-9/Lau;;
 
 int main() {
 
-double FermiEnergy=5.53*eVtoAU;
+double FermiEnergy=9.75*eVtoAU;
 double term1, term2;
 double fac = pi*pi/(2*L*L);
 int electrons;
@@ -38,9 +38,9 @@ nf=(int)sqrt(FermiEnergy*(2*L*L)/(pi*pi*1));
 
 double eF= 0.5*pow( (3*pi*pi*(electrons)/(L*L*L)), 2./3.);
 
-printf ("%f  from hbar^2/2m * (3pi^2 * Ne/Vnc)^2/3 \n", 27.211*eF);
+printf ("%f  E_Fermi from hbar^2/2m * (3pi^2 * Ne/Vnc)^2/3 \n", 27.211*eF);
 
-printf("%i   from, Vnc/3pi^2 * (2mEf/hbar^2)^3/2  \n", electrons);
+printf("%i   Nels from, Vnc/3pi^2 * (2mEf/hbar^2)^3/2  \n", electrons);
 
 printf("%i   from sqrt(Ef*2*m*L^2/pi^2 hbar^2)  \n", nf);
 //nf=5;
